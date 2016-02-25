@@ -90,6 +90,7 @@ def sam_to_hdf(samfile, **kwargs):
     read_ids, allele_ids = [], []
     first_hit_row = True
     total_hits = 0
+    max_reads = 30000
 
     with open(samfile, 'r') as f:
         last_read_id = None
@@ -99,11 +100,14 @@ def sam_to_hdf(samfile, **kwargs):
                     allele_ids.append(line.split('\t')[1][3:]) # SN:HLA:HLA00001
                 continue
 
-            total_hits += 1
             read_id = line.split('\t')[0]
             if last_read_id != read_id:
+                if len(read_ids) == max_reads:
+                    break
                 read_ids.append(read_id)
                 last_read_id = read_id
+
+            total_hits += 1
 
             if first_hit_row:  # analyze SAM file structure and find MD tag column (describes mismatches).
                 first_hit_row = False
@@ -156,6 +160,9 @@ def sam_to_hdf(samfile, **kwargs):
 
             fields = line.strip().split('\t')
             read_id, allele_id, position, cigar, nm, mismatches = (fields[i] for i in (0, 2, 3, 5, nm_index, md_index))
+
+            if counter == total_hits:
+                break
 
             position = int(position)
             nm = int(nm[5:])  # NM:i:2 --> 2
